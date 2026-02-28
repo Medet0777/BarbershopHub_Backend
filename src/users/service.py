@@ -6,8 +6,10 @@ from datetime import datetime, timezone
 from src.users.users_data import users
 
 
-def get_all_users() -> List[dict]:
-    return users
+def get_all_users(
+        skip: int = 0, limit: int = 100
+) -> List[dict]:
+    return users[skip: skip + limit]
 
 
 def get_user_by_id(user_id: uuid.UUID) -> Optional[dict]:

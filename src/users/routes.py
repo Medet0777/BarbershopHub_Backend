@@ -2,6 +2,8 @@ import uuid
 from typing import List
 
 from fastapi import APIRouter, status, HTTPException
+
+from src.dependencies import PaginationDependency
 from src.users import service
 from src.users.schemas import UserCreate, UserOut, UserUpdate
 
@@ -9,8 +11,10 @@ user_router = APIRouter()
 
 
 @user_router.get("/", response_model=List[UserOut])
-async def get_users():
-    return service.get_all_users()
+async def get_users(
+        pagination: PaginationDependency
+):
+    return service.get_all_users(skip=pagination["skip"], limit=pagination["limit"])
 
 
 @user_router.get("/{user_id}", response_model=UserOut)

@@ -2,6 +2,7 @@ from fastapi import APIRouter, status, HTTPException
 from typing import List
 import uuid
 
+from src.dependencies import PaginationDependency
 from src.schedules import service
 from src.schedules.schemas import ScheduleOut, ScheduleCreate, ScheduleUpdate
 
@@ -12,8 +13,10 @@ schedule_router = APIRouter()
     "/",
     response_model=List[ScheduleOut]
 )
-async def get_schedules():
-    return service.get_all_schedules()
+async def get_schedules(
+        pagination: PaginationDependency
+):
+    return service.get_all_schedules(skip=pagination["skip"], limit=pagination["limit"])
 
 
 @schedule_router.get(

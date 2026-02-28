@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, status, HTTPException
 
+from src.dependencies import PaginationDependency
 from src.services import service
 from src.services.schemas import ServiceOut, ServiceCreate, ServiceUpdate
 
@@ -13,8 +14,10 @@ service_router = APIRouter()
     "/",
     response_model=List[ServiceOut]
 )
-async def get_services():
-    return service.get_all_services()
+async def get_services(
+        pagination: PaginationDependency
+):
+    return service.get_all_services(skip=pagination["skip"], limit=pagination["limit"])
 
 
 @service_router.get(

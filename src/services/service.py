@@ -6,8 +6,10 @@ from src.services.schemas import ServiceCreate, ServiceUpdate
 from src.services.services_data import services
 
 
-def get_all_services() -> List[dict]:
-    return services
+def get_all_services(
+        skip: int = 0, limit: int = 100
+) -> List[dict]:
+    return services[skip: skip + limit]
 
 
 def get_service_by_id(service_id: uuid.UUID) -> Optional[dict]:

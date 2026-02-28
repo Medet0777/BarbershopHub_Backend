@@ -5,8 +5,10 @@ from typing import List, Optional
 from src.bookings.bookings_data import bookings
 from src.bookings.schemas import BookingCreate, BookingUpdate
 
-def get_all_bookings() -> List[dict]:
-    return bookings
+def get_all_bookings(
+        skip: int = 0, limit: int = 100
+) -> List[dict]:
+    return bookings[skip: skip + limit]
 
 def get_booking_by_id(booking_id: uuid.UUID) -> Optional[dict]:
     for booking in bookings:

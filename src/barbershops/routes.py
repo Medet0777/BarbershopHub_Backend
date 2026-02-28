@@ -4,6 +4,7 @@ import uuid
 
 from src.barbershops import service
 from src.barbershops.schemas import BarbershopOut, BarbershopCreate, BarbershopUpdate
+from src.dependencies import PaginationDependency
 
 barbershop_router = APIRouter()
 
@@ -12,8 +13,10 @@ barbershop_router = APIRouter()
     "/",
     response_model=List[BarbershopOut]
 )
-async def get_barbershops():
-    return service.get_all_barbershops()
+async def get_barbershops(
+        pagination: PaginationDependency
+):
+    return service.get_all_barbershops(skip=pagination["skip"], limit=pagination["limit"])
 
 
 @barbershop_router.get(

@@ -6,8 +6,10 @@ from src.schedules.schedules_data import schedules
 from src.schedules.schemas import ScheduleCreate, ScheduleUpdate
 
 
-def get_all_schedules() -> List[dict]:
-    return schedules
+def get_all_schedules(
+        skip: int = 0, limit: int = 100
+) -> List[dict]:
+    return schedules[skip:skip + limit]
 
 
 def get_schedule_by_id(schedule_id: uuid.UUID) -> Optional[dict]:

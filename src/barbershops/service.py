@@ -5,8 +5,10 @@ from typing import List, Optional
 from src.barbershops.barbershops_data import barbershops
 from src.barbershops.schemas import BarbershopCreate, BarbershopUpdate
 
-def get_all_barbershops() -> List[dict]:
-    return barbershops
+def get_all_barbershops(
+        skip: int = 0, limit: int = 100
+) -> List[dict]:
+    return barbershops[skip: skip + limit]
 
 def get_barbershop_by_id(shop_id: uuid.UUID) -> Optional[dict]:
     for shop in barbershops:

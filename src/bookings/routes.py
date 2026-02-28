@@ -4,6 +4,7 @@ import uuid
 
 from src.bookings import service
 from src.bookings.schemas import BookingOut, BookingCreate, BookingUpdate
+from src.dependencies import PaginationDependency
 
 booking_router = APIRouter()
 
@@ -12,8 +13,10 @@ booking_router = APIRouter()
     "/",
     response_model=List[BookingOut]
 )
-async def get_bookings():
-    return service.get_all_bookings()
+async def get_bookings(
+        pagination: PaginationDependency
+):
+    return service.get_all_bookings(skip=pagination["skip"], limit=pagination["limit"])
 
 
 @booking_router.get(
