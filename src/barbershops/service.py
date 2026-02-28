@@ -1,46 +1,55 @@
 import uuid
-from datetime import datetime, timezone
 from typing import List, Optional
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.barbershops.barbershops_data import barbershops
+from src.db.models import Barbershop
 from src.barbershops.schemas import BarbershopCreate, BarbershopUpdate
 
-def get_all_barbershops(
-        skip: int = 0, limit: int = 100
-) -> List[dict]:
-    return barbershops[skip: skip + limit]
 
-def get_barbershop_by_id(shop_id: uuid.UUID) -> Optional[dict]:
-    for shop in barbershops:
-        if shop["uid"] == shop_id:
-            return shop
-    return None
+async def get_all_barbershops(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Barbershop]:
+    result = await session.execute(
+        select(Barbershop).offset(skip).limit(limit)
+    )
+    return list(result.scalars().all())
 
-def create_barbershop(shop_data: BarbershopCreate) -> dict:
-    new_shop = {
-        "uid": uuid.uuid4(),
-        "name": shop_data.name,
-        "address": shop_data.address,
-        "phone": shop_data.phone,
-        "email": shop_data.email,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
-    barbershops.append(new_shop)
+
+async def get_barbershop_by_id(shop_id: uuid.UUID, session: AsyncSession) -> Optional[Barbershop]:
+    result = await session.execute(
+        select(Barbershop).where(Barbershop.uid == shop_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_barbershop(shop_data: BarbershopCreate, session: AsyncSession) -> Barbershop:
+    new_shop = Barbershop(
+        name=shop_data.name,
+        address=shop_data.address,
+        phone=shop_data.phone,
+        email=shop_data.email
+    )
+    session.add(new_shop)
+    await session.commit()
+    await session.refresh(new_shop)
     return new_shop
 
-def update_barbershop(shop_id: uuid.UUID, update_data: BarbershopUpdate) -> Optional[dict]:
-    shop = get_barbershop_by_id(shop_id)
+
+async def update_barbershop(shop_id: uuid.UUID, update_data: BarbershopUpdate, session: AsyncSession) -> Optional[
+    Barbershop]:
+    shop = await get_barbershop_by_id(shop_id, session)
     if not shop:
         return None
     for key, value in update_data.model_dump(exclude_unset=True).items():
-        shop[key] = value
-    shop["updated_at"] = datetime.now(timezone.utc)
+        setattr(shop, key, value)
+    await session.commit()
+    await session.refresh(shop)
     return shop
 
-def delete_barbershop(shop_id: uuid.UUID) -> bool:
-    shop = get_barbershop_by_id(shop_id)
+
+async def delete_barbershop(shop_id: uuid.UUID, session: AsyncSession) -> bool:
+    shop = await get_barbershop_by_id(shop_id, session)
     if not shop:
         return False
-    barbershops.remove(shop)
+    await session.delete(shop)
+    await session.commit()
     return True
