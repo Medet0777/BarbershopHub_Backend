@@ -15,10 +15,10 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str]
-    email: Optional[str]
-    password: Optional[str]
-    role: Optional[str]
+    name: Optional[str] = None
+    email: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
 
 
 class UserOut(UserBase):
