@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from src.db.main import initdb
 
 from fastapi import FastAPI
+from src.users.routes import user_router
 
 
 @asynccontextmanager
@@ -24,3 +25,6 @@ app = FastAPI(
 @app.get("/")
 async def root():
     return {"message": "Barbershop Booking System"}
+
+
+app.include_router(user_router, prefix=f"/api/{version}/users", tags=["users"])
