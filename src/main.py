@@ -3,6 +3,7 @@ from src.db.main import initdb
 
 from fastapi import FastAPI
 
+from src.schedules.routes import schedule_router
 from src.services.routes import service_router
 from src.users.routes import user_router
 
@@ -31,3 +32,4 @@ async def root():
 
 app.include_router(user_router, prefix=f"/api/{version}/users", tags=["users"])
 app.include_router(service_router, prefix=f"/api/{version}/services", tags=["services"])
+app.include_router(schedule_router, prefix=f"/api/{version}/schedules", tags=["schedules"])
