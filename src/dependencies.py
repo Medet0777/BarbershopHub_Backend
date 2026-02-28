@@ -1,4 +1,4 @@
-from fastapi import Query, Depends
+from fastapi import Query, Depends, Header, HTTPException, status
 from typing import Annotated
 
 
@@ -20,3 +20,33 @@ async def pagination(
 
 
 PaginationDependency = Annotated[dict, Depends(pagination)]
+
+
+async def verify_admin_role(
+        x_role: str = Header(...)
+):
+    if x_role.lower() != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required"
+        )
+
+
+async def verify_admin_or_barbershop_staff_role(
+        x_role: str = Header(...)
+):
+    if x_role.lower() not in ["admin", "barbershop_staff"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or Barbershop Staff privileges required"
+        )
+
+
+async def verify_admin_or_client_role(
+        x_role: str = Header(...)
+):
+    if x_role.lower() not in ["admin", "client"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin or Client  privileges required"
+        )

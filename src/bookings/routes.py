@@ -1,10 +1,10 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends
 from typing import List
 import uuid
 
 from src.bookings import service
 from src.bookings.schemas import BookingOut, BookingCreate, BookingUpdate
-from src.dependencies import PaginationDependency
+from src.dependencies import PaginationDependency, verify_admin_role
 
 booking_router = APIRouter()
 
@@ -54,7 +54,8 @@ async def update_booking(
 
 @booking_router.delete(
     "/{booking_id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_admin_role)]
 )
 async def delete_booking(booking_id: uuid.UUID):
     if not service.delete_booking(booking_id):

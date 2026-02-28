@@ -1,9 +1,9 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends
 
-from src.dependencies import PaginationDependency
+from src.dependencies import PaginationDependency, verify_admin_role
 from src.users import service
 from src.users.schemas import UserCreate, UserOut, UserUpdate
 
@@ -51,7 +51,8 @@ async def update_user(user_id: uuid.UUID, update_data: UserUpdate):
 
 @user_router.delete(
     "/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_admin_role)]
 )
 async def delete_user(user_id: uuid.UUID):
     user = service.delete_user(user_id)

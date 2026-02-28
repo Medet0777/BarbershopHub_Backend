@@ -1,8 +1,8 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends
 from typing import List
 import uuid
 
-from src.dependencies import PaginationDependency
+from src.dependencies import PaginationDependency, verify_admin_or_barbershop_staff_role
 from src.schedules import service
 from src.schedules.schemas import ScheduleOut, ScheduleCreate, ScheduleUpdate
 
@@ -33,7 +33,8 @@ async def get_schedule(schedule_id: uuid.UUID):
 @schedule_router.post(
     "/",
     response_model=ScheduleOut,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(verify_admin_or_barbershop_staff_role)]
 )
 async def create_schedule(sched_data: ScheduleCreate):
     return service.create_schedule(sched_data)
@@ -41,7 +42,8 @@ async def create_schedule(sched_data: ScheduleCreate):
 
 @schedule_router.patch(
     "/{schedule_id}",
-    response_model=ScheduleOut
+    response_model=ScheduleOut,
+    dependencies=[Depends(verify_admin_or_barbershop_staff_role)]
 )
 async def update_schedule(schedule_id: uuid.UUID, update_data: ScheduleUpdate):
     sched = service.update_schedule(schedule_id, update_data)
@@ -52,7 +54,9 @@ async def update_schedule(schedule_id: uuid.UUID, update_data: ScheduleUpdate):
 
 @schedule_router.delete(
     "/{schedule_id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_admin_or_barbershop_staff_role)]
+
 )
 async def delete_schedule(schedule_id: uuid.UUID):
     if not service.delete_schedule(schedule_id):

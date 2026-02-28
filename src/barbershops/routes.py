@@ -1,10 +1,10 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Depends
 from typing import List
 import uuid
 
 from src.barbershops import service
 from src.barbershops.schemas import BarbershopOut, BarbershopCreate, BarbershopUpdate
-from src.dependencies import PaginationDependency
+from src.dependencies import PaginationDependency, verify_admin_role
 
 barbershop_router = APIRouter()
 
@@ -52,7 +52,8 @@ async def update_barbershop(shop_id: uuid.UUID, update_data: BarbershopUpdate):
 
 @barbershop_router.delete(
     "/{shop_id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_admin_role)]
 )
 async def delete_barbershop(shop_id: uuid.UUID):
     if not service.delete_barbershop(shop_id):
