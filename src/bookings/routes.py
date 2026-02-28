@@ -5,7 +5,7 @@ import uuid
 from src.bookings import service
 from src.bookings.schemas import BookingOut, BookingCreate, BookingUpdate
 
-booking_router = APIRouter(prefix="/bookings", tags=["bookings"])
+booking_router = APIRouter()
 
 
 @booking_router.get(

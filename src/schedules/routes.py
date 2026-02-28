@@ -5,7 +5,7 @@ import uuid
 from src.schedules import service
 from src.schedules.schemas import ScheduleOut, ScheduleCreate, ScheduleUpdate
 
-schedule_router = APIRouter(prefix="/schedules", tags=["schedules"])
+schedule_router = APIRouter()
 
 
 @schedule_router.get(

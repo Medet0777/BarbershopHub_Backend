@@ -5,7 +5,7 @@ import uuid
 from src.barbershops import service
 from src.barbershops.schemas import BarbershopOut, BarbershopCreate, BarbershopUpdate
 
-barbershop_router = APIRouter(prefix="/barbershops", tags=["barbershops"])
+barbershop_router = APIRouter()
 
 
 @barbershop_router.get(

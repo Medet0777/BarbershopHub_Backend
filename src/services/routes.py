@@ -6,7 +6,7 @@ from fastapi import APIRouter, status, HTTPException
 from src.services import service
 from src.services.schemas import ServiceOut, ServiceCreate, ServiceUpdate
 
-service_router = APIRouter(prefix="/services", tags=["services"])
+service_router = APIRouter()
 
 
 @service_router.get(

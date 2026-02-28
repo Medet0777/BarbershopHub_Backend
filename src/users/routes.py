@@ -5,7 +5,7 @@ from fastapi import APIRouter, status, HTTPException
 from src.users import service
 from src.users.schemas import UserCreate, UserOut, UserUpdate
 
-user_router = APIRouter(prefix="/users", tags=["users"])
+user_router = APIRouter()
 
 
 @user_router.get("/", response_model=List[UserOut])
