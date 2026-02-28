@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+
+from src.bookings.routes import booking_router
 from src.db.main import initdb
 
 from fastapi import FastAPI
@@ -33,3 +35,4 @@ async def root():
 app.include_router(user_router, prefix=f"/api/{version}/users", tags=["users"])
 app.include_router(service_router, prefix=f"/api/{version}/services", tags=["services"])
 app.include_router(schedule_router, prefix=f"/api/{version}/schedules", tags=["schedules"])
+app.include_router(booking_router,prefix=f"/api/{version}/bookings", tags=["bookings"])
