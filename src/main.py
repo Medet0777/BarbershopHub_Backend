@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     await initdb()
     yield
     print("server is stopping")
