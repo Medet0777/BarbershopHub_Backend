@@ -1,53 +1,58 @@
 import uuid
-from datetime import datetime, timezone
 from typing import List, Optional
 
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.db.models import Service
 from src.services.schemas import ServiceCreate, ServiceUpdate
-from src.services.services_data import services
 
 
-def get_all_services(
-        skip: int = 0, limit: int = 100
-) -> List[dict]:
-    return services[skip: skip + limit]
+async def get_all_services(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Service]:
+    result = await session.execute(
+        select(Service).offset(skip).limit(limit)
+    )
+    return list(result.scalars().all())
 
 
-def get_service_by_id(service_id: uuid.UUID) -> Optional[dict]:
-    for service in services:
-        if service["uid"] == service_id:
-            return service
-    return None
+async def get_service_by_id(service_id: uuid.UUID, session: AsyncSession) -> Optional[Service]:
+    result = await session.execute(
+        select(Service).where(Service.uid == service_id)
+    )
+    return result.scalar_one_or_none()
 
 
-def create_service(service_data: ServiceCreate) -> dict:
-    new_service = {
-        "uid": uuid.uuid4(),
-        "name": service_data.name,
-        "description": service_data.description,
-        "category": service_data.category,
-        "duration_minutes": service_data.duration_minutes,
-        "price": service_data.price,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
-    services.append(new_service)
+async def create_service(service_data: ServiceCreate, session: AsyncSession) -> Service:
+    new_service = Service(
+        name=service_data.name,
+        description=service_data.description,
+        category=service_data.category,
+        duration_minutes=service_data.duration_minutes,
+        price=service_data.price
+    )
+    session.add(new_service)
+    await session.commit()
+    await session.refresh(new_service)
     return new_service
 
 
-def update_service(service_id: uuid.UUID, update_data: ServiceUpdate) -> Optional[dict]:
-    service = get_service_by_id(service_id)
-    if not service:
+async def update_service(service_id: uuid.UUID, update_data: ServiceUpdate, session: AsyncSession) -> Optional[Service]:
+    service_obj = await get_service_by_id(service_id, session)
+    if not service_obj:
         return None
 
     for key, value in update_data.model_dump(exclude_unset=True).items():
-        service[key] = value
-    service["updated_at"] = datetime.now(timezone.utc)
-    return service
+        setattr(service_obj, key, value)
+
+    await session.commit()
+    await session.refresh(service_obj)
+    return service_obj
 
 
-def delete_service(service_id: uuid.UUID) -> bool:
-    service = get_service_by_id(service_id)
-    if not service:
+async def delete_service(service_id: uuid.UUID, session: AsyncSession) -> bool:
+    service_obj = await get_service_by_id(service_id, session)
+    if not service_obj:
         return False
-    services.remove(service)
+    await session.delete(service_obj)
+    await session.commit()
     return True
