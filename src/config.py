@@ -9,4 +9,4 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-Config = Settings()
+settings = Settings()
