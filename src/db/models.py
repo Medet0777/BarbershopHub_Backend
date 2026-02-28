@@ -1,7 +1,10 @@
 import uuid
-import sqlalchemy.dialects.postgresql as pg
 from datetime import datetime, timezone
+
+import sqlalchemy.dialects.postgresql as pg
+from sqlalchemy import ForeignKey, Integer, Time
 from sqlmodel import SQLModel, Field, Column
+
 
 # User model part
 class User(SQLModel, table=True):
@@ -30,3 +33,87 @@ class User(SQLModel, table=True):
 
     def __repr__(self):
         return f"<User{self.email}>"
+
+
+# Booking model part
+class Booking(SQLModel, table=True):
+    __tablename__ = "bookings"
+
+    uid: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            primary_key=True,
+            unique=True,
+            nullable=False,
+            default=uuid.uuid4
+        )
+    )
+
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("users.uid"),
+            nullable=False
+        )
+    )
+
+    service_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("services.uid"),
+            nullable=False
+        )
+    )
+
+    schedule_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("schedules.uid"),
+            nullable=False
+        )
+    )
+
+    status: str = Field(default="Pending")
+
+    created_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc),
+                         onupdate=lambda: datetime.now(timezone.utc))
+    )
+
+
+# Schedule model part
+class Schedule(SQLModel, table=True):
+    __tablename__ = "schedules"
+
+    uid: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            primary_key=True,
+            unique=True,
+            nullable=False,
+            default=uuid.uuid4
+        )
+    )
+
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("users.uid"),
+            nullable=False
+        )
+    )  # barbers slots
+
+    day_of_week: int = Field(sa_column=Column(Integer, nullable=False))  # 0=Monday, 6=Sunday
+    start_time: str = Field(sa_column=Column(Time, nullable=False))
+    end_time: str = Field(sa_column=Column(Time, nullable=False))
+
+    created_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc),
+                         onupdate=lambda: datetime.now(timezone.utc))
+    )
