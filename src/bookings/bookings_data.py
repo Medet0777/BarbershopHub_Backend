@@ -1,4 +1,3 @@
-# Фейковая база бронирований для теста
 import uuid
 from datetime import datetime, timezone
 from src.users.users_data import users
