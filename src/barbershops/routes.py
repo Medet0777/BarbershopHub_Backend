@@ -50,8 +50,10 @@ async def update_barbershop(
     return shop
 
 
-@barbershop_router.delete("/{shop_id}", status_code=status.HTTP_204_NO_CONTENT,
-                          dependencies=[Depends(verify_admin_role)])
+@barbershop_router.delete(
+    "/{shop_id}", status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(verify_admin_role)]
+)
 async def delete_barbershop(
         shop_id: uuid.UUID,
         session: AsyncSession = Depends(get_session)

@@ -17,11 +17,11 @@ class ServiceCreate(ServiceBase):
 
 
 class ServiceUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
-    duration_minutes: Optional[int]
-    price: Optional[float]
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    price: Optional[float] = None
 
 
 class ServiceOut(ServiceBase):

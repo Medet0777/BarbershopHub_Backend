@@ -13,10 +13,10 @@ class BookingCreate(BookingBase):
     pass
 
 class BookingUpdate(BaseModel):
-    user_id: Optional[uuid.UUID]
-    service_id: Optional[uuid.UUID]
-    schedule_id: Optional[uuid.UUID]
-    status: Optional[str]
+    user_id: Optional[uuid.UUID] = None
+    service_id: Optional[uuid.UUID] = None
+    schedule_id: Optional[uuid.UUID] = None
+    status: Optional[str] = None
 
 class BookingOut(BookingBase):
     uid: uuid.UUID

@@ -16,11 +16,10 @@ class BarbershopCreate(BarbershopBase):
 
 
 class BarbershopUpdate(BaseModel):
-    name: Optional[str]
-    address: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
-
+    name: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
 
 class BarbershopOut(BarbershopBase):
     uid: uuid.UUID
