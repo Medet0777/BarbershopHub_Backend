@@ -1,44 +1,54 @@
 import uuid
-from datetime import datetime, timezone
 from typing import List, Optional
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.bookings.bookings_data import bookings
+from src.db.models import Booking
 from src.bookings.schemas import BookingCreate, BookingUpdate
 
-def get_all_bookings() -> List[dict]:
-    return bookings
 
-def get_booking_by_id(booking_id: uuid.UUID) -> Optional[dict]:
-    for booking in bookings:
-        if booking["uid"] == booking_id:
-            return booking
-    return None
+async def get_all_bookings(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Booking]:
+    result = await session.execute(
+        select(Booking).offset(skip).limit(limit)
+    )
+    return list(result.scalars().all())
 
-def create_booking(booking_data: BookingCreate) -> dict:
-    new_booking = {
-        "uid": uuid.uuid4(),
-        "user_id": booking_data.user_id,
-        "service_id": booking_data.service_id,
-        "schedule_id": booking_data.schedule_id,
-        "status": booking_data.status or "Pending",
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
-    bookings.append(new_booking)
+
+async def get_booking_by_id(booking_id: uuid.UUID, session: AsyncSession) -> Optional[Booking]:
+    result = await session.execute(
+        select(Booking).where(Booking.uid == booking_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_booking(booking_data: BookingCreate, session: AsyncSession) -> Booking:
+    new_booking = Booking(
+        user_id=booking_data.user_id,
+        service_id=booking_data.service_id,
+        schedule_id=booking_data.schedule_id,
+        status=booking_data.status or "Pending"
+    )
+    session.add(new_booking)
+    await session.commit()
+    await session.refresh(new_booking)
     return new_booking
 
-def update_booking(booking_id: uuid.UUID, update_data: BookingUpdate) -> Optional[dict]:
-    bk = get_booking_by_id(booking_id)
+
+async def update_booking(booking_id: uuid.UUID, update_data: BookingUpdate, session: AsyncSession) -> Optional[Booking]:
+    bk = await get_booking_by_id(booking_id, session)
     if not bk:
         return None
     for key, value in update_data.model_dump(exclude_unset=True).items():
-        bk[key] = value
-    bk["updated_at"] = datetime.now(timezone.utc)
+        setattr(bk, key, value)
+    await session.commit()
+    await session.refresh(bk)
     return bk
 
-def delete_booking(booking_id: uuid.UUID) -> bool:
-    bk = get_booking_by_id(booking_id)
+
+async def delete_booking(booking_id: uuid.UUID, session: AsyncSession) -> bool:
+    bk = await get_booking_by_id(booking_id, session)
     if not bk:
         return False
-    bookings.remove(bk)
+    await session.delete(bk)
+    await session.commit()
     return True
