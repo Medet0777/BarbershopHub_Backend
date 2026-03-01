@@ -6,7 +6,7 @@ import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import ForeignKey, Integer, Time
 from sqlmodel import SQLModel, Field, Column, Relationship
 
-from db.enums import RoleEnum, BookingStatusEnum
+from src.db.enums import RoleEnum, BookingStatusEnum
 
 
 class User(SQLModel, table=True):

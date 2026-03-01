@@ -3,7 +3,7 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
-from db.enums import BookingStatusEnum
+from src.db.enums import BookingStatusEnum
 
 
 class BookingBase(BaseModel):
