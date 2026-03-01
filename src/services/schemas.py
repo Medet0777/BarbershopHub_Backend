@@ -6,10 +6,11 @@ from datetime import datetime
 
 class ServiceBase(BaseModel):
     name: str
-    description: Optional[str]
+    description: Optional[str] = None
     category: str
-    duration_minutes: Optional[int] = 30
-    price: Optional[float] = 0.0
+    duration_minutes: int = 30
+    price: float = 0.0
+    barbershop_id: uuid.UUID
 
 
 class ServiceCreate(ServiceBase):
@@ -17,11 +18,11 @@ class ServiceCreate(ServiceBase):
 
 
 class ServiceUpdate(BaseModel):
-    name: Optional[str]
-    description: Optional[str]
-    category: Optional[str]
-    duration_minutes: Optional[int]
-    price: Optional[float]
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    price: Optional[float] = None
 
 
 class ServiceOut(ServiceBase):
