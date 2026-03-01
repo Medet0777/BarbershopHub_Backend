@@ -1,50 +1,55 @@
 import uuid
 from typing import Optional, List
 
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.db.models import User
 from src.users.schemas import UserCreate, UserUpdate
-from datetime import datetime, timezone
-from src.users.users_data import users
 
 
-def get_all_users() -> List[dict]:
-    return users
+async def get_all_users(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[User]:
+    result = await session.execute(
+        select(User).offset(skip).limit(limit)
+    )
+    return list(result.scalars().all())
 
 
-def get_user_by_id(user_id: uuid.UUID) -> Optional[dict]:
-    for user in users:
-        if user["uid"] == user_id:
-            return user
-    return None
+async def get_user_by_id(user_id: uuid.UUID, session: AsyncSession) -> Optional[User]:
+    result = await session.execute(
+        select(User).where(User.uid == user_id)
+    )
+    return result.scalar_one_or_none()
 
 
-def create_user(user_data: UserCreate) -> dict:
-    new_user = {
-        "uid": uuid.uuid4(),
-        "name": user_data.name,
-        "email": user_data.email,
-        "password": user_data.password,
-        "role": user_data.role,
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
-
-    users.append(new_user)
+async def create_user(user_data: UserCreate, session: AsyncSession) -> User:
+    new_user = User(
+        name=user_data.name,
+        email=user_data.email,
+        password=user_data.password,
+        role=user_data.role
+    )
+    session.add(new_user)
+    await session.commit()
+    await session.refresh(new_user)
     return new_user
 
 
-def update_user(user_id: uuid.UUID, update_data: UserUpdate) -> Optional[dict]:
-    user = get_user_by_id(user_id)
+async def update_user(user_id: uuid.UUID, update_data: UserUpdate, session: AsyncSession) -> Optional[User]:
+    user = await get_user_by_id(user_id, session)
     if not user:
         return None
     for key, value in update_data.model_dump(exclude_unset=True).items():
-        user[key] = value
-    user["updated_at"] = datetime.now(timezone.utc)
+        setattr(user, key, value)
+    await session.commit()
+    await session.refresh(user)
     return user
 
 
-def delete_user(user_id: uuid.UUID) -> bool:
-    user = get_user_by_id(user_id)
+async def delete_user(user_id: uuid.UUID, session: AsyncSession) -> bool:
+    user = await get_user_by_id(user_id, session)
     if not user:
         return False
-    users.remove(user)
+    await session.delete(user)
+    await session.commit()
     return True
