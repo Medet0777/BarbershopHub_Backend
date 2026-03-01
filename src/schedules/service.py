@@ -1,6 +1,5 @@
 import uuid
 from typing import List, Optional
-
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +24,7 @@ async def get_schedule_by_id(schedule_id: uuid.UUID, session: AsyncSession) -> O
 async def create_schedule(schedule_data: ScheduleCreate, session: AsyncSession) -> Schedule:
     new_schedule = Schedule(
         user_id=schedule_data.user_id,
+        barbershop_id=schedule_data.barbershop_id,
         day_of_week=schedule_data.day_of_week,
         start_time=schedule_data.start_time,
         end_time=schedule_data.end_time
@@ -40,10 +40,8 @@ async def update_schedule(schedule_id: uuid.UUID, update_data: ScheduleUpdate, s
     sched = await get_schedule_by_id(schedule_id, session)
     if not sched:
         return None
-
     for key, value in update_data.model_dump(exclude_unset=True).items():
         setattr(sched, key, value)
-
     await session.commit()
     await session.refresh(sched)
     return sched
@@ -53,7 +51,6 @@ async def delete_schedule(schedule_id: uuid.UUID, session: AsyncSession) -> bool
     sched = await get_schedule_by_id(schedule_id, session)
     if not sched:
         return False
-
     await session.delete(sched)
     await session.commit()
     return True

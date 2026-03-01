@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.barbershops import service
 from src.barbershops.schemas import BarbershopOut, BarbershopCreate, BarbershopUpdate
+from src.services.schemas import ServiceOut
+from src.schedules.schemas import ScheduleOut
 from src.dependencies import PaginationDependency, verify_admin_role
 from src.db.session import get_session
 
@@ -28,6 +30,28 @@ async def get_barbershop(
     if not shop:
         raise HTTPException(status_code=404, detail="Barbershop not found")
     return shop
+
+
+@barbershop_router.get("/{shop_id}/services", response_model=List[ServiceOut])
+async def get_barbershop_services(
+        shop_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session)
+):
+    shop = await service.get_barbershop_by_id(shop_id, session)
+    if not shop:
+        raise HTTPException(status_code=404, detail="Barbershop not found")
+    return shop.services
+
+
+@barbershop_router.get("/{shop_id}/schedules", response_model=List[ScheduleOut])
+async def get_barbershop_schedules(
+        shop_id: uuid.UUID,
+        session: AsyncSession = Depends(get_session)
+):
+    shop = await service.get_barbershop_by_id(shop_id, session)
+    if not shop:
+        raise HTTPException(status_code=404, detail="Barbershop not found")
+    return shop.schedules
 
 
 @barbershop_router.post("/", response_model=BarbershopOut, status_code=status.HTTP_201_CREATED)

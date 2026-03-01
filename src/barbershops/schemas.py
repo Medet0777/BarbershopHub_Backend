@@ -9,6 +9,7 @@ class BarbershopBase(BaseModel):
     address: str
     phone: str
     email: str
+    owner_id: uuid.UUID
 
 
 class BarbershopCreate(BarbershopBase):
@@ -21,10 +22,8 @@ class BarbershopUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
 
+
 class BarbershopOut(BarbershopBase):
     uid: uuid.UUID
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        orm_mode = True

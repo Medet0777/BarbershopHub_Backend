@@ -26,7 +26,8 @@ async def create_barbershop(shop_data: BarbershopCreate, session: AsyncSession) 
         name=shop_data.name,
         address=shop_data.address,
         phone=shop_data.phone,
-        email=shop_data.email
+        email=shop_data.email,
+        owner_id=shop_data.owner_id
     )
     session.add(new_shop)
     await session.commit()

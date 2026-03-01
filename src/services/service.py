@@ -1,6 +1,5 @@
 import uuid
 from typing import List, Optional
-
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +27,8 @@ async def create_service(service_data: ServiceCreate, session: AsyncSession) -> 
         description=service_data.description,
         category=service_data.category,
         duration_minutes=service_data.duration_minutes,
-        price=service_data.price
+        price=service_data.price,
+        barbershop_id=service_data.barbershop_id
     )
     session.add(new_service)
     await session.commit()
@@ -40,10 +40,8 @@ async def update_service(service_id: uuid.UUID, update_data: ServiceUpdate, sess
     service_obj = await get_service_by_id(service_id, session)
     if not service_obj:
         return None
-
     for key, value in update_data.model_dump(exclude_unset=True).items():
         setattr(service_obj, key, value)
-
     await session.commit()
     await session.refresh(service_obj)
     return service_obj
