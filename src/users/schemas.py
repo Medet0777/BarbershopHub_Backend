@@ -3,11 +3,13 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
+from db.enums import RoleEnum
+
 
 class UserBase(BaseModel):
     name: str
     email: str
-    role: Optional[str] = "client"
+    role: Optional[RoleEnum] = RoleEnum.CLIENT
 
 
 class UserCreate(UserBase):
@@ -18,7 +20,7 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
-    role: Optional[str] = None
+    role: Optional[RoleEnum] = RoleEnum.CLIENT
 
 
 class UserOut(UserBase):

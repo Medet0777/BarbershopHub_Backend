@@ -6,6 +6,8 @@ import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import ForeignKey, Integer, Time
 from sqlmodel import SQLModel, Field, Column, Relationship
 
+from db.enums import RoleEnum, BookingStatusEnum
+
 
 class User(SQLModel, table=True):
     __tablename__ = "users"
@@ -22,7 +24,7 @@ class User(SQLModel, table=True):
     name: str
     email: str = Field(index=True, nullable=False, unique=True)
     password: str
-    role: str = Field(default="client")
+    role: str = Field(default=RoleEnum.CLIENT)
     created_at: datetime = Field(
         sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
     )
@@ -219,7 +221,7 @@ class Booking(SQLModel, table=True):
             nullable=False
         )
     )
-    status: str = Field(default="Pending")
+    status: str = Field(default=BookingStatusEnum.PENDING)
     created_at: datetime = Field(
         sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
     )
