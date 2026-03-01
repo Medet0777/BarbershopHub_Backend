@@ -21,7 +21,4 @@ class BookingUpdate(BaseModel):
 class BookingOut(BookingBase):
     uid: uuid.UUID
     created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        orm_mode = True
+    updated_at: datetimeдаа
