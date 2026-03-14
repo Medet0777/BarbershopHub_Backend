@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,12 +17,20 @@ admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"])
 @schedule_router.get("/", response_model=List[ScheduleOut])
 async def get_schedules(
         pagination: PaginationDependency,
+        day_of_week: int = Query(None),
+        barbershop_id: uuid.UUID = Query(None),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
     return await service.get_all_schedules(
         skip=pagination["skip"],
         limit=pagination["limit"],
-        session=session
+        session=session,
+        day_of_week=day_of_week,
+        barbershop_id=barbershop_id,
+        sort_by=sort_by,
+        order=order,
     )
 
 

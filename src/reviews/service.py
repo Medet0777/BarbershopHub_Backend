@@ -1,17 +1,22 @@
 import uuid
 from typing import List, Optional
 
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Review
 from src.reviews.schemas import ReviewCreate, ReviewUpdate
 
 
-async def get_all_reviews(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Review]:
-    result = await session.execute(
-        select(Review).offset(skip).limit(limit)
-    )
+async def get_all_reviews(skip: int = 0, limit: int = 100, session: AsyncSession = None, sort_by: str = "created_at", order: str = "desc", rating: int = None) -> List[Review]:
+    statement = select(Review)
+    if rating:
+        statement = statement.where(Review.rating == rating)
+    order_func = desc if order == "desc" else asc
+    if hasattr(Review, sort_by):
+        statement = statement.order_by(order_func(getattr(Review, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 

@@ -1,17 +1,22 @@
 import uuid
 from typing import List, Optional
 
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Payment
 from src.payments.schemas import PaymentCreate, PaymentUpdate
 
 
-async def get_all_payments(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Payment]:
-    result = await session.execute(
-        select(Payment).offset(skip).limit(limit)
-    )
+async def get_all_payments(skip: int = 0, limit: int = 100, session: AsyncSession = None, status_filter: str = None, sort_by: str = "created_at", order: str = "desc") -> List[Payment]:
+    statement = select(Payment)
+    if status_filter:
+        statement = statement.where(Payment.status == status_filter)
+    order_func = desc if order == "desc" else asc
+    if hasattr(Payment, sort_by):
+        statement = statement.order_by(order_func(getattr(Payment, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 

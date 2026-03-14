@@ -1,16 +1,23 @@
 import uuid
 from typing import List, Optional
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Service
 from src.services.schemas import ServiceCreate, ServiceUpdate
 
 
-async def get_all_services(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Service]:
-    result = await session.execute(
-        select(Service).offset(skip).limit(limit)
-    )
+async def get_all_services(skip: int = 0, limit: int = 100, session: AsyncSession = None, search: str = None, category: str = None, sort_by: str = "created_at", order: str = "desc") -> List[Service]:
+    statement = select(Service)
+    if search:
+        statement = statement.where(Service.name.ilike(f"%{search}%"))
+    if category:
+        statement = statement.where(Service.category == category)
+    order_func = desc if order == "desc" else asc
+    if hasattr(Service, sort_by):
+        statement = statement.order_by(order_func(getattr(Service, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 

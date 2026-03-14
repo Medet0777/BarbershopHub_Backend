@@ -1,16 +1,23 @@
 import uuid
 from typing import List, Optional
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Schedule
 from src.schedules.schemas import ScheduleCreate, ScheduleUpdate
 
 
-async def get_all_schedules(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Schedule]:
-    result = await session.execute(
-        select(Schedule).offset(skip).limit(limit)
-    )
+async def get_all_schedules(skip: int = 0, limit: int = 100, session: AsyncSession = None, day_of_week: int = None, barbershop_id: uuid.UUID = None, sort_by: str = "created_at", order: str = "desc") -> List[Schedule]:
+    statement = select(Schedule)
+    if day_of_week is not None:
+        statement = statement.where(Schedule.day_of_week == day_of_week)
+    if barbershop_id:
+        statement = statement.where(Schedule.barbershop_id == barbershop_id)
+    order_func = desc if order == "desc" else asc
+    if hasattr(Schedule, sort_by):
+        statement = statement.order_by(order_func(getattr(Schedule, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 

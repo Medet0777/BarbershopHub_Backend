@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.reviews import service
@@ -20,12 +20,18 @@ client_role_checker = Depends(RoleChecker(["admin", "client"]))
 @review_router.get("/", response_model=List[ReviewOut])
 async def get_reviews(
         pagination: PaginationDependency,
+        rating: int = Query(None, ge=1, le=5),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
     return await service.get_all_reviews(
         skip=pagination["skip"],
         limit=pagination["limit"],
         session=session,
+        sort_by=sort_by,
+        order=order,
+        rating=rating,
     )
 
 

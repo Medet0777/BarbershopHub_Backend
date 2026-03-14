@@ -1,16 +1,23 @@
 import uuid
 from typing import List, Optional
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Barbershop
 from src.barbershops.schemas import BarbershopCreate, BarbershopUpdate
 
 
-async def get_all_barbershops(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Barbershop]:
-    result = await session.execute(
-        select(Barbershop).offset(skip).limit(limit)
-    )
+async def get_all_barbershops(skip: int = 0, limit: int = 100, session: AsyncSession = None, search: str = None, sort_by: str = "created_at", order: str = "desc") -> List[Barbershop]:
+    statement = select(Barbershop)
+    if search:
+        statement = statement.where(
+            Barbershop.name.ilike(f"%{search}%") | Barbershop.address.ilike(f"%{search}%")
+        )
+    order_func = desc if order == "desc" else asc
+    if hasattr(Barbershop, sort_by):
+        statement = statement.order_by(order_func(getattr(Barbershop, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 

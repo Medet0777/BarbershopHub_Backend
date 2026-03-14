@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,9 +22,12 @@ admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"])
 @barbershop_router.get("/", response_model=List[BarbershopOut])
 async def get_barbershops(
         pagination: PaginationDependency,
+        search: str = Query(None),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
-    return await service.get_all_barbershops(skip=pagination["skip"], limit=pagination["limit"], session=session)
+    return await service.get_all_barbershops(skip=pagination["skip"], limit=pagination["limit"], session=session, search=search, sort_by=sort_by, order=order)
 
 
 @barbershop_router.get("/{shop_id}", response_model=BarbershopOut)

@@ -1,16 +1,21 @@
 import uuid
 from typing import List, Optional
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Booking
 from src.bookings.schemas import BookingCreate, BookingUpdate
 
 
-async def get_all_bookings(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Booking]:
-    result = await session.execute(
-        select(Booking).offset(skip).limit(limit)
-    )
+async def get_all_bookings(skip: int = 0, limit: int = 100, session: AsyncSession = None, status_filter: str = None, sort_by: str = "created_at", order: str = "desc") -> List[Booking]:
+    statement = select(Booking)
+    if status_filter:
+        statement = statement.where(Booking.status == status_filter)
+    order_func = desc if order == "desc" else asc
+    if hasattr(Booking, sort_by):
+        statement = statement.order_by(order_func(getattr(Booking, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 

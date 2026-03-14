@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.payments import service
@@ -20,12 +20,18 @@ client_role_checker = Depends(RoleChecker(["admin", "client"]))
 @payment_router.get("/", response_model=List[PaymentOut], dependencies=[admin_role_checker])
 async def get_payments(
         pagination: PaginationDependency,
+        status_filter: str = Query(None, alias="status"),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
     return await service.get_all_payments(
         skip=pagination["skip"],
         limit=pagination["limit"],
         session=session,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        order=order,
     )
 
 

@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import PaginationDependency
@@ -19,12 +19,18 @@ admin_role_checker = Depends(RoleChecker(["admin"]))
 @user_router.get("/", response_model=List[UserOut], dependencies=[admin_role_checker])
 async def get_users(
         pagination: PaginationDependency,
+        search: str = Query(None, description="Search by name or email"),
+        sort_by: str = Query("created_at", description="Sort by field"),
+        order: str = Query("desc", description="asc or desc"),
         session: AsyncSession = Depends(get_session),
 ):
     users = await service.get_all_users(
         skip=pagination["skip"],
         limit=pagination["limit"],
-        session=session
+        search=search,
+        sort_by=sort_by,
+        order=order,
+        session=session,
     )
     return users
 
