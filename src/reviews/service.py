@@ -1,0 +1,70 @@
+import uuid
+from typing import List, Optional
+
+from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.db.models import Review
+from src.reviews.schemas import ReviewCreate, ReviewUpdate
+
+
+async def get_all_reviews(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Review]:
+    result = await session.execute(
+        select(Review).offset(skip).limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def get_review_by_id(review_id: uuid.UUID, session: AsyncSession) -> Optional[Review]:
+    result = await session.execute(
+        select(Review).where(Review.uid == review_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_reviews_by_barbershop(barbershop_id: uuid.UUID, session: AsyncSession) -> List[Review]:
+    result = await session.execute(
+        select(Review).where(Review.barbershop_id == barbershop_id)
+    )
+    return list(result.scalars().all())
+
+
+async def get_review_by_booking(booking_id: uuid.UUID, session: AsyncSession) -> Optional[Review]:
+    result = await session.execute(
+        select(Review).where(Review.booking_id == booking_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def create_review(review_data: ReviewCreate, user_id: uuid.UUID, session: AsyncSession) -> Review:
+    new_review = Review(
+        user_id=user_id,
+        barbershop_id=review_data.barbershop_id,
+        booking_id=review_data.booking_id,
+        rating=review_data.rating,
+        comment=review_data.comment,
+    )
+    session.add(new_review)
+    await session.commit()
+    await session.refresh(new_review)
+    return new_review
+
+
+async def update_review(review_id: uuid.UUID, update_data: ReviewUpdate, session: AsyncSession) -> Optional[Review]:
+    review = await get_review_by_id(review_id, session)
+    if not review:
+        return None
+    for key, value in update_data.model_dump(exclude_unset=True).items():
+        setattr(review, key, value)
+    await session.commit()
+    await session.refresh(review)
+    return review
+
+
+async def delete_review(review_id: uuid.UUID, session: AsyncSession) -> bool:
+    review = await get_review_by_id(review_id, session)
+    if not review:
+        return False
+    await session.delete(review)
+    await session.commit()
+    return True
