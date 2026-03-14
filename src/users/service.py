@@ -1,11 +1,12 @@
 import uuid
 from typing import Optional, List
 
-from sqlmodel import select, desc, asc
+from sqlmodel import select, desc, asc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException, status
 
-from src.db.models import User
+from src.db.models import User, Booking
 from src.users.schemas import UserCreate, UserUpdate
 from src.errors import UserAlreadyExists
 
@@ -82,6 +83,20 @@ async def delete_user(user_id: uuid.UUID, session: AsyncSession) -> bool:
     user = await get_user_by_id(user_id, session)
     if not user:
         return False
+
+    # Check for active bookings
+    result = await session.execute(
+        select(Booking).where(
+            and_(
+                Booking.user_id == user_id,
+                Booking.status.in_(["Pending", "Confirmed"]),
+            )
+        )
+    )
+    active = result.scalar_one_or_none()
+    if active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete user with active bookings")
+
     await session.delete(user)
     await session.commit()
     return True
