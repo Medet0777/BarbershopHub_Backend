@@ -12,3 +12,15 @@ class BookingStatusEnum(str, enum.Enum):
     CONFIRMED = "Confirmed"
     CANCELLED = "Cancelled"
     COMPLETED = "Completed"
+
+
+class PaymentStatusEnum(str, enum.Enum):
+    PENDING = "Pending"
+    COMPLETED = "Completed"
+    REFUNDED = "Refunded"
+
+
+class PaymentMethodEnum(str, enum.Enum):
+    CASH = "cash"
+    CARD = "card"
+    ONLINE = "online"
