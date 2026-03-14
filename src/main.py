@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+from src.errors import register_error_handlers
 from src.auth.routes import auth_router
 from src.users.routes import user_router
 from src.services.routes import service_router
@@ -25,6 +26,9 @@ app = FastAPI(
     version=version,
     lifespan=lifespan
 )
+
+
+register_error_handlers(app)
 
 
 @app.get("/")

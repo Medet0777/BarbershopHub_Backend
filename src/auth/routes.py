@@ -1,7 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, status
-from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +10,7 @@ from src.auth.utils import create_access_token, verify_password, REFRESH_TOKEN_E
 from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user
 from src.db.session import get_session
 from src.db.redis import add_jti_to_blocklist
+from src.errors import UserAlreadyExists, InvalidCredentials
 
 auth_router = APIRouter()
 
@@ -24,10 +24,7 @@ async def create_user_account(
     user_exists = await user_service.user_exists(email, session)
 
     if user_exists:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User with this email already exists",
-        )
+        raise UserAlreadyExists()
 
     new_user = await user_service.create_user(user_data, session)
     return new_user
@@ -63,10 +60,7 @@ async def login_users(
             }
         )
 
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Invalid email or password",
-    )
+    raise InvalidCredentials()
 
 
 @auth_router.get("/refresh")
@@ -75,17 +69,12 @@ async def get_new_access_token(
 ):
     expiry_timestamp = token_details["exp"]
 
-    from datetime import datetime
-
     if datetime.fromtimestamp(expiry_timestamp) > datetime.now():
         new_access_token = create_access_token(user_data=token_details["user"])
 
         return JSONResponse(content={"access_token": new_access_token})
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Invalid or expired token",
-    )
+    raise InvalidCredentials()
 
 
 @auth_router.get("/logout")

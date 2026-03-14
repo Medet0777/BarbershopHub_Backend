@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.reviews import service
@@ -10,6 +10,7 @@ from src.dependencies import PaginationDependency
 from src.db.session import get_session
 from src.auth.dependencies import RoleChecker, get_current_user
 from src.db.models import User
+from src.errors import ReviewNotFound, DuplicateReview, InsufficientPermission
 
 review_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -35,7 +36,7 @@ async def get_review(
 ):
     review = await service.get_review_by_id(review_id, session)
     if not review:
-        raise HTTPException(status_code=404, detail="Review not found")
+        raise ReviewNotFound()
     return review
 
 
@@ -52,10 +53,7 @@ async def create_review(
 ):
     existing_review = await service.get_review_by_booking(review_data.booking_id, session)
     if existing_review:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Review for this booking already exists",
-        )
+        raise DuplicateReview()
 
     return await service.create_review(review_data, current_user.uid, session)
 
@@ -73,10 +71,10 @@ async def update_review(
 ):
     review = await service.get_review_by_id(review_id, session)
     if not review:
-        raise HTTPException(status_code=404, detail="Review not found")
+        raise ReviewNotFound()
 
     if review.user_id != current_user.uid and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="You can only update your own reviews")
+        raise InsufficientPermission()
 
     updated = await service.update_review(review_id, update_data, session)
     return updated
@@ -93,10 +91,10 @@ async def delete_review(
 ):
     review = await service.get_review_by_id(review_id, session)
     if not review:
-        raise HTTPException(status_code=404, detail="Review not found")
+        raise ReviewNotFound()
 
     if review.user_id != current_user.uid and current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="You can only delete your own reviews")
+        raise InsufficientPermission()
 
     await service.delete_review(review_id, session)
     return {}

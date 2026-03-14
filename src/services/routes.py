@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import PaginationDependency
@@ -9,6 +9,7 @@ from src.db.session import get_session
 from src.services import service
 from src.services.schemas import ServiceOut, ServiceCreate, ServiceUpdate
 from src.auth.dependencies import RoleChecker
+from src.errors import ServiceNotFound
 
 service_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -35,7 +36,7 @@ async def get_service(
 ):
     srvc = await service.get_service_by_id(service_id, session)
     if not srvc:
-        raise HTTPException(status_code=404, detail="Service not found")
+        raise ServiceNotFound()
     return srvc
 
 
@@ -65,7 +66,7 @@ async def update_service(
 ):
     svc = await service.update_service(service_id, update_data, session)
     if not svc:
-        raise HTTPException(status_code=404, detail="Service not found")
+        raise ServiceNotFound()
     return svc
 
 
@@ -80,5 +81,5 @@ async def delete_service(
 ):
     deleted = await service.delete_service(service_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Service not found")
+        raise ServiceNotFound()
     return {}

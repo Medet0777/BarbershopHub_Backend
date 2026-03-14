@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,7 @@ from src.dependencies import PaginationDependency
 from src.db.session import get_session
 from src.auth.dependencies import RoleChecker, get_current_user
 from src.db.models import User
+from src.errors import BookingNotFound
 
 booking_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -31,7 +32,7 @@ async def get_booking(
 ):
     bk = await service.get_booking_by_id(booking_id, session)
     if not bk:
-        raise HTTPException(status_code=404, detail="Booking not found")
+        raise BookingNotFound()
     return bk
 
 
@@ -60,7 +61,7 @@ async def update_booking(
 ):
     bk = await service.update_booking(booking_id, update_data, session)
     if not bk:
-        raise HTTPException(status_code=404, detail="Booking not found")
+        raise BookingNotFound()
     return bk
 
 
@@ -75,5 +76,5 @@ async def delete_booking(
 ):
     deleted = await service.delete_booking(booking_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Booking not found")
+        raise BookingNotFound()
     return {}

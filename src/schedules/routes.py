@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from src.db.session import get_session
 from src.schedules import service
 from src.schedules.schemas import ScheduleOut, ScheduleCreate, ScheduleUpdate
 from src.auth.dependencies import RoleChecker
+from src.errors import ScheduleNotFound
 
 schedule_router = APIRouter()
 admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"]))
@@ -32,7 +33,7 @@ async def get_schedule(
 ):
     sched = await service.get_schedule_by_id(schedule_id, session)
     if not sched:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise ScheduleNotFound()
     return sched
 
 
@@ -61,7 +62,7 @@ async def update_schedule(
 ):
     sched = await service.update_schedule(schedule_id, update_data, session)
     if not sched:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise ScheduleNotFound()
     return sched
 
 
@@ -76,5 +77,5 @@ async def delete_schedule(
 ):
     deleted = await service.delete_schedule(schedule_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise ScheduleNotFound()
     return {}

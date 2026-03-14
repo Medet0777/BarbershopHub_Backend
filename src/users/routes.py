@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import PaginationDependency
@@ -9,6 +9,7 @@ from src.db.session import get_session
 from src.users import service
 from src.users.schemas import UserCreate, UserOut, UserUpdate
 from src.auth.dependencies import AccessTokenBearer, RoleChecker
+from src.errors import UserNotFound
 
 user_router = APIRouter()
 access_token_bearer = AccessTokenBearer()
@@ -35,7 +36,7 @@ async def get_user(
 ):
     user = await service.get_user_by_id(user_id, session)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise UserNotFound()
     return user
 
 
@@ -51,7 +52,7 @@ async def update_user(
 ):
     user = await service.update_user(user_id, update_data, session)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise UserNotFound()
     return user
 
 
@@ -66,5 +67,5 @@ async def delete_user(
 ):
     deleted = await service.delete_user(user_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise UserNotFound()
     return {}
