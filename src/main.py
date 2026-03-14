@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+from src.auth.routes import auth_router
 from src.users.routes import user_router
 from src.services.routes import service_router
 from src.schedules.routes import schedule_router
@@ -29,6 +30,7 @@ async def root():
     return {"message": "Barbershop Booking System"}
 
 
+app.include_router(auth_router, prefix=f"/api/{version}/auth", tags=["auth"])
 app.include_router(user_router, prefix=f"/api/{version}/users", tags=["users"])
 app.include_router(service_router, prefix=f"/api/{version}/services", tags=["services"])
 app.include_router(schedule_router, prefix=f"/api/{version}/schedules", tags=["schedules"])
