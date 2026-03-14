@@ -3,22 +3,20 @@ import logging
 from datetime import datetime, timedelta
 
 import jwt
-from passlib.context import CryptContext
+import bcrypt
 
 from src.config import settings
-
-passwd_context = CryptContext(schemes=["bcrypt"])
 
 ACCESS_TOKEN_EXPIRY = 60  # minutes
 REFRESH_TOKEN_EXPIRY = 7  # days
 
 
 def generate_password_hash(password: str) -> str:
-    return passwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
-def verify_password(password: str, hash: str) -> bool:
-    return passwd_context.verify(password, hash)
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def create_access_token(

@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Payment, Booking
 from src.payments.schemas import PaymentCreate, PaymentUpdate
-from src.errors import DuplicatePayment, BookingConflict
+from fastapi import HTTPException, status
+from src.errors import DuplicatePayment
 
 
 async def get_all_payments(skip: int = 0, limit: int = 100, session: AsyncSession = None, status_filter: str = None, sort_by: str = "created_at", order: str = "desc") -> List[Payment]:
@@ -40,11 +41,11 @@ async def create_payment(payment_data: PaymentCreate, session: AsyncSession) -> 
     booking_result = await session.execute(select(Booking).where(Booking.uid == payment_data.booking_id))
     booking = booking_result.scalar_one_or_none()
     if not booking:
-        raise BookingConflict()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
 
     # Cannot pay for cancelled booking
     if booking.status == "Cancelled":
-        raise BookingConflict()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot pay for a cancelled booking")
 
     # Cannot pay twice
     existing = await get_payment_by_booking(payment_data.booking_id, session)

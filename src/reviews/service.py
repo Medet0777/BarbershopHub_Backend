@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import Review, Booking
 from src.reviews.schemas import ReviewCreate, ReviewUpdate
-from src.errors import DuplicateReview, BookingConflict
+from fastapi import HTTPException, status
+from src.errors import DuplicateReview
 
 
 async def get_all_reviews(skip: int = 0, limit: int = 100, session: AsyncSession = None, sort_by: str = "created_at", order: str = "desc", rating: int = None) -> List[Review]:
@@ -43,17 +44,19 @@ async def get_review_by_booking(booking_id: uuid.UUID, session: AsyncSession) ->
 
 
 async def create_review(review_data: ReviewCreate, user_id: uuid.UUID, session: AsyncSession) -> Review:
-    # Check booking exists and is completed
+    # Check booking exists
     booking_result = await session.execute(select(Booking).where(Booking.uid == review_data.booking_id))
     booking = booking_result.scalar_one_or_none()
     if not booking:
-        raise BookingConflict()
-    if booking.status != "Completed":
-        raise BookingConflict()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
 
-    # Check booking belongs to this user
+    # Booking must be completed
+    if booking.status != "Completed":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Can only review a completed booking")
+
+    # Booking must belong to this user
     if booking.user_id != user_id:
-        raise BookingConflict()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only review your own bookings")
 
     # Check no duplicate review for this booking
     existing = await get_review_by_booking(review_data.booking_id, session)

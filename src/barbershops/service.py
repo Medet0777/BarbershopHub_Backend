@@ -32,12 +32,24 @@ async def get_barbershop_by_id(shop_id: uuid.UUID, session: AsyncSession) -> Opt
 
 
 async def create_barbershop(shop_data: BarbershopCreate, session: AsyncSession) -> Barbershop:
+    # Check duplicate name + address
+    result = await session.execute(
+        select(Barbershop).where(
+            and_(
+                Barbershop.name == shop_data.name,
+                Barbershop.address == shop_data.address,
+            )
+        )
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Barbershop with this name and address already exists")
+
     new_shop = Barbershop(
         name=shop_data.name,
         address=shop_data.address,
         phone=shop_data.phone,
         email=shop_data.email,
-        owner_id=shop_data.owner_id
+        owner_id=shop_data.owner_id,
     )
     session.add(new_shop)
     await session.commit()
