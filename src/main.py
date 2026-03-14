@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from src.db.init_db import init_db
 from src.users.routes import user_router
 from src.services.routes import service_router
 from src.schedules.routes import schedule_router
@@ -13,7 +12,6 @@ version = "v1"
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await init_db()
     yield
     print("Server stopping")
 

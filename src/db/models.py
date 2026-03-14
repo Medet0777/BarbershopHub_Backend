@@ -6,7 +6,7 @@ import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import ForeignKey, Integer, Time
 from sqlmodel import SQLModel, Field, Column, Relationship
 
-from src.db.enums import RoleEnum, BookingStatusEnum
+from src.db.enums import RoleEnum, BookingStatusEnum, PaymentStatusEnum, PaymentMethodEnum
 
 
 class User(SQLModel, table=True):
@@ -42,6 +42,10 @@ class User(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "selectin"}
     )
     bookings: List["Booking"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    reviews: List["Review"] = Relationship(
         back_populates="user",
         sa_relationship_kwargs={"lazy": "selectin"}
     )
@@ -90,6 +94,10 @@ class Barbershop(SQLModel, table=True):
         sa_relationship_kwargs={"lazy": "selectin"}
     )
     schedules: List["Schedule"] = Relationship(
+        back_populates="barbershop",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    reviews: List["Review"] = Relationship(
         back_populates="barbershop",
         sa_relationship_kwargs={"lazy": "selectin"}
     )
@@ -240,5 +248,108 @@ class Booking(SQLModel, table=True):
     )
     schedule: Optional["Schedule"] = Relationship(
         back_populates="bookings",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    review: Optional["Review"] = Relationship(
+        back_populates="booking",
+        sa_relationship_kwargs={"lazy": "selectin", "uselist": False}
+    )
+    payment: Optional["Payment"] = Relationship(
+        back_populates="booking",
+        sa_relationship_kwargs={"lazy": "selectin", "uselist": False}
+    )
+
+
+class Review(SQLModel, table=True):
+    __tablename__ = "reviews"
+
+    uid: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            primary_key=True,
+            unique=True,
+            nullable=False,
+            default=uuid.uuid4
+        )
+    )
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("users.uid"),
+            nullable=False
+        )
+    )
+    barbershop_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("barbershops.uid"),
+            nullable=False
+        )
+    )
+    booking_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("bookings.uid"),
+            unique=True,
+            nullable=False
+        )
+    )
+    rating: int = Field(sa_column=Column(Integer, nullable=False))
+    comment: Optional[str] = None
+    created_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc),
+                         onupdate=lambda: datetime.now(timezone.utc))
+    )
+
+    user: Optional["User"] = Relationship(
+        back_populates="reviews",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    barbershop: Optional["Barbershop"] = Relationship(
+        back_populates="reviews",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    booking: Optional["Booking"] = Relationship(
+        back_populates="review",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+
+class Payment(SQLModel, table=True):
+    __tablename__ = "payments"
+
+    uid: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            primary_key=True,
+            unique=True,
+            nullable=False,
+            default=uuid.uuid4
+        )
+    )
+    booking_id: uuid.UUID = Field(
+        sa_column=Column(
+            pg.UUID,
+            ForeignKey("bookings.uid"),
+            unique=True,
+            nullable=False
+        )
+    )
+    amount: float = Field(default=0)
+    payment_method: str = Field(default=PaymentMethodEnum.CASH)
+    status: str = Field(default=PaymentStatusEnum.PENDING)
+    created_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc),
+                         onupdate=lambda: datetime.now(timezone.utc))
+    )
+
+    booking: Optional["Booking"] = Relationship(
+        back_populates="payment",
         sa_relationship_kwargs={"lazy": "selectin"}
     )
