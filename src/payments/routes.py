@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.payments import service
@@ -10,6 +10,7 @@ from src.dependencies import PaginationDependency
 from src.db.session import get_session
 from src.auth.dependencies import RoleChecker, get_current_user
 from src.db.models import User
+from src.errors import PaymentNotFound, DuplicatePayment
 
 payment_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -19,12 +20,18 @@ client_role_checker = Depends(RoleChecker(["admin", "client"]))
 @payment_router.get("/", response_model=List[PaymentOut], dependencies=[admin_role_checker])
 async def get_payments(
         pagination: PaginationDependency,
+        status_filter: str = Query(None, alias="status"),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
     return await service.get_all_payments(
         skip=pagination["skip"],
         limit=pagination["limit"],
         session=session,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        order=order,
     )
 
 
@@ -36,7 +43,7 @@ async def get_payment(
 ):
     payment = await service.get_payment_by_id(payment_id, session)
     if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
+        raise PaymentNotFound()
     return payment
 
 
@@ -52,10 +59,7 @@ async def create_payment(
 ):
     existing_payment = await service.get_payment_by_booking(payment_data.booking_id, session)
     if existing_payment:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment for this booking already exists",
-        )
+        raise DuplicatePayment()
 
     return await service.create_payment(payment_data, session)
 
@@ -72,7 +76,7 @@ async def update_payment(
 ):
     payment = await service.update_payment(payment_id, update_data, session)
     if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
+        raise PaymentNotFound()
     return payment
 
 
@@ -87,5 +91,5 @@ async def delete_payment(
 ):
     deleted = await service.delete_payment(payment_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Payment not found")
+        raise PaymentNotFound()
     return {}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends, Query
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ from src.db.session import get_session
 from src.schedules import service
 from src.schedules.schemas import ScheduleOut, ScheduleCreate, ScheduleUpdate
 from src.auth.dependencies import RoleChecker
+from src.errors import ScheduleNotFound
 
 schedule_router = APIRouter()
 admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"]))
@@ -16,12 +17,20 @@ admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"])
 @schedule_router.get("/", response_model=List[ScheduleOut])
 async def get_schedules(
         pagination: PaginationDependency,
+        day_of_week: int = Query(None),
+        barbershop_id: uuid.UUID = Query(None),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
     return await service.get_all_schedules(
         skip=pagination["skip"],
         limit=pagination["limit"],
-        session=session
+        session=session,
+        day_of_week=day_of_week,
+        barbershop_id=barbershop_id,
+        sort_by=sort_by,
+        order=order,
     )
 
 
@@ -32,7 +41,7 @@ async def get_schedule(
 ):
     sched = await service.get_schedule_by_id(schedule_id, session)
     if not sched:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise ScheduleNotFound()
     return sched
 
 
@@ -61,7 +70,7 @@ async def update_schedule(
 ):
     sched = await service.update_schedule(schedule_id, update_data, session)
     if not sched:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise ScheduleNotFound()
     return sched
 
 
@@ -76,5 +85,5 @@ async def delete_schedule(
 ):
     deleted = await service.delete_schedule(schedule_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Schedule not found")
+        raise ScheduleNotFound()
     return {}

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, Depends, Query
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from src.reviews import service as review_service
 from src.dependencies import PaginationDependency
 from src.db.session import get_session
 from src.auth.dependencies import RoleChecker
+from src.errors import BarbershopNotFound
 
 barbershop_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -21,9 +22,12 @@ admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"])
 @barbershop_router.get("/", response_model=List[BarbershopOut])
 async def get_barbershops(
         pagination: PaginationDependency,
+        search: str = Query(None),
+        sort_by: str = Query("created_at"),
+        order: str = Query("desc"),
         session: AsyncSession = Depends(get_session),
 ):
-    return await service.get_all_barbershops(skip=pagination["skip"], limit=pagination["limit"], session=session)
+    return await service.get_all_barbershops(skip=pagination["skip"], limit=pagination["limit"], session=session, search=search, sort_by=sort_by, order=order)
 
 
 @barbershop_router.get("/{shop_id}", response_model=BarbershopOut)
@@ -33,7 +37,7 @@ async def get_barbershop(
 ):
     shop = await service.get_barbershop_by_id(shop_id, session)
     if not shop:
-        raise HTTPException(status_code=404, detail="Barbershop not found")
+        raise BarbershopNotFound()
     return shop
 
 
@@ -44,7 +48,7 @@ async def get_barbershop_services(
 ):
     shop = await service.get_barbershop_by_id(shop_id, session)
     if not shop:
-        raise HTTPException(status_code=404, detail="Barbershop not found")
+        raise BarbershopNotFound()
     return shop.services
 
 
@@ -55,7 +59,7 @@ async def get_barbershop_schedules(
 ):
     shop = await service.get_barbershop_by_id(shop_id, session)
     if not shop:
-        raise HTTPException(status_code=404, detail="Barbershop not found")
+        raise BarbershopNotFound()
     return shop.schedules
 
 
@@ -66,7 +70,7 @@ async def get_barbershop_reviews(
 ):
     shop = await service.get_barbershop_by_id(shop_id, session)
     if not shop:
-        raise HTTPException(status_code=404, detail="Barbershop not found")
+        raise BarbershopNotFound()
     return await review_service.get_reviews_by_barbershop(shop_id, session)
 
 
@@ -95,7 +99,7 @@ async def update_barbershop(
 ):
     shop = await service.update_barbershop(shop_id, update_data, session)
     if not shop:
-        raise HTTPException(status_code=404, detail="Barbershop not found")
+        raise BarbershopNotFound()
     return shop
 
 
@@ -110,5 +114,5 @@ async def delete_barbershop(
 ):
     deleted = await service.delete_barbershop(shop_id, session)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Barbershop not found")
+        raise BarbershopNotFound()
     return {}

@@ -1,17 +1,23 @@
 import uuid
 from typing import List, Optional
 
-from sqlmodel import select
+from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Payment
+from src.db.models import Payment, Booking
 from src.payments.schemas import PaymentCreate, PaymentUpdate
+from src.errors import DuplicatePayment, BookingConflict
 
 
-async def get_all_payments(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[Payment]:
-    result = await session.execute(
-        select(Payment).offset(skip).limit(limit)
-    )
+async def get_all_payments(skip: int = 0, limit: int = 100, session: AsyncSession = None, status_filter: str = None, sort_by: str = "created_at", order: str = "desc") -> List[Payment]:
+    statement = select(Payment)
+    if status_filter:
+        statement = statement.where(Payment.status == status_filter)
+    order_func = desc if order == "desc" else asc
+    if hasattr(Payment, sort_by):
+        statement = statement.order_by(order_func(getattr(Payment, sort_by)))
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 
@@ -30,6 +36,21 @@ async def get_payment_by_booking(booking_id: uuid.UUID, session: AsyncSession) -
 
 
 async def create_payment(payment_data: PaymentCreate, session: AsyncSession) -> Payment:
+    # Check booking exists
+    booking_result = await session.execute(select(Booking).where(Booking.uid == payment_data.booking_id))
+    booking = booking_result.scalar_one_or_none()
+    if not booking:
+        raise BookingConflict()
+
+    # Cannot pay for cancelled booking
+    if booking.status == "Cancelled":
+        raise BookingConflict()
+
+    # Cannot pay twice
+    existing = await get_payment_by_booking(payment_data.booking_id, session)
+    if existing:
+        raise DuplicatePayment()
+
     new_payment = Payment(
         booking_id=payment_data.booking_id,
         amount=payment_data.amount,

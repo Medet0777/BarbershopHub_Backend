@@ -1,19 +1,37 @@
 import uuid
 from typing import Optional, List
 
-from sqlmodel import select
+from sqlmodel import select, desc, asc, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 
-from src.db.models import User
+from src.db.models import User, Booking
 from src.users.schemas import UserCreate, UserUpdate
+from src.errors import UserAlreadyExists
 
 
-async def get_all_users(skip: int = 0, limit: int = 100, session: AsyncSession = None) -> List[User]:
-    result = await session.execute(
-        select(User).offset(skip).limit(limit)
-    )
+async def get_all_users(
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None,
+    sort_by: str = "created_at",
+    order: str = "desc",
+    session: AsyncSession = None,
+) -> List[User]:
+    statement = select(User)
+
+    if search:
+        statement = statement.where(
+            User.name.ilike(f"%{search}%") | User.email.ilike(f"%{search}%")
+        )
+
+    order_func = desc if order == "desc" else asc
+    if hasattr(User, sort_by):
+        statement = statement.order_by(order_func(getattr(User, sort_by)))
+
+    statement = statement.offset(skip).limit(limit)
+    result = await session.execute(statement)
     return list(result.scalars().all())
 
 
@@ -31,7 +49,6 @@ async def create_user(user_data: UserCreate, session: AsyncSession) -> User:
         password=user_data.password,
         role=user_data.role
     )
-
     session.add(new_user)
 
     try:
@@ -39,10 +56,7 @@ async def create_user(user_data: UserCreate, session: AsyncSession) -> User:
         await session.refresh(new_user)
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
-        )
+        raise UserAlreadyExists()
 
     return new_user
 
@@ -60,10 +74,7 @@ async def update_user(user_id: uuid.UUID, update_data: UserUpdate, session: Asyn
         await session.refresh(user)
     except IntegrityError:
         await session.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already exists"
-        )
+        raise UserAlreadyExists()
 
     return user
 
@@ -72,6 +83,19 @@ async def delete_user(user_id: uuid.UUID, session: AsyncSession) -> bool:
     user = await get_user_by_id(user_id, session)
     if not user:
         return False
+
+    # Check for active bookings
+    result = await session.execute(
+        select(Booking).where(
+            and_(
+                Booking.user_id == user_id,
+                Booking.status.in_(["Pending", "Confirmed"]),
+            )
+        )
+    )
+    active = result.scalar_one_or_none()
+    if active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete user with active bookings")
 
     await session.delete(user)
     await session.commit()
