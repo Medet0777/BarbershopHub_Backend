@@ -4,8 +4,9 @@ from typing import List, Optional
 from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Review
+from src.db.models import Review, Booking
 from src.reviews.schemas import ReviewCreate, ReviewUpdate
+from src.errors import DuplicateReview, BookingConflict
 
 
 async def get_all_reviews(skip: int = 0, limit: int = 100, session: AsyncSession = None, sort_by: str = "created_at", order: str = "desc", rating: int = None) -> List[Review]:
@@ -42,6 +43,23 @@ async def get_review_by_booking(booking_id: uuid.UUID, session: AsyncSession) ->
 
 
 async def create_review(review_data: ReviewCreate, user_id: uuid.UUID, session: AsyncSession) -> Review:
+    # Check booking exists and is completed
+    booking_result = await session.execute(select(Booking).where(Booking.uid == review_data.booking_id))
+    booking = booking_result.scalar_one_or_none()
+    if not booking:
+        raise BookingConflict()
+    if booking.status != "Completed":
+        raise BookingConflict()
+
+    # Check booking belongs to this user
+    if booking.user_id != user_id:
+        raise BookingConflict()
+
+    # Check no duplicate review for this booking
+    existing = await get_review_by_booking(review_data.booking_id, session)
+    if existing:
+        raise DuplicateReview()
+
     new_review = Review(
         user_id=user_id,
         barbershop_id=review_data.barbershop_id,

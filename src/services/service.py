@@ -3,7 +3,10 @@ from typing import List, Optional
 from sqlmodel import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.models import Service
+from sqlmodel import and_
+from fastapi import HTTPException, status
+
+from src.db.models import Service, Booking
 from src.services.schemas import ServiceCreate, ServiceUpdate
 
 
@@ -58,6 +61,20 @@ async def delete_service(service_id: uuid.UUID, session: AsyncSession) -> bool:
     service_obj = await get_service_by_id(service_id, session)
     if not service_obj:
         return False
+
+    # Check for active bookings
+    result = await session.execute(
+        select(Booking).where(
+            and_(
+                Booking.service_id == service_id,
+                Booking.status.in_(["Pending", "Confirmed"]),
+            )
+        )
+    )
+    active = result.scalar_one_or_none()
+    if active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete service with active bookings")
+
     await session.delete(service_obj)
     await session.commit()
     return True
