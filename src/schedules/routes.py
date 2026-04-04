@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, Request
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,13 +9,16 @@ from src.schedules import service
 from src.schedules.schemas import ScheduleOut, ScheduleCreate, ScheduleUpdate
 from src.auth.dependencies import RoleChecker
 from src.errors import ScheduleNotFound
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 schedule_router = APIRouter()
 admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"]))
 
 
 @schedule_router.get("/", response_model=List[ScheduleOut])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_schedules(
+        request: Request,
         pagination: PaginationDependency,
         day_of_week: int = Query(None),
         barbershop_id: uuid.UUID = Query(None),
@@ -35,7 +38,9 @@ async def get_schedules(
 
 
 @schedule_router.get("/{schedule_id}", response_model=ScheduleOut)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_schedule(
+        request: Request,
         schedule_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -51,7 +56,9 @@ async def get_schedule(
     status_code=status.HTTP_201_CREATED,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def create_schedule(
+        request: Request,
         sched_data: ScheduleCreate,
         session: AsyncSession = Depends(get_session),
 ):
@@ -63,7 +70,9 @@ async def create_schedule(
     response_model=ScheduleOut,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def update_schedule(
+        request: Request,
         schedule_id: uuid.UUID,
         update_data: ScheduleUpdate,
         session: AsyncSession = Depends(get_session),
@@ -79,7 +88,9 @@ async def update_schedule(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def delete_schedule(
+        request: Request,
         schedule_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):

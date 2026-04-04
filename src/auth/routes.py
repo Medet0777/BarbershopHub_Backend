@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,12 +11,15 @@ from src.auth.dependencies import RefreshTokenBearer, AccessTokenBearer, get_cur
 from src.db.session import get_session
 from src.db.redis import add_jti_to_blocklist
 from src.errors import UserAlreadyExists, InvalidCredentials
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 auth_router = APIRouter()
 
 
 @auth_router.post("/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit(WRITE_RATE_LIMIT)
 async def create_user_account(
+    request: Request,
     user_data: UserCreateModel,
     session: AsyncSession = Depends(get_session),
 ):
@@ -31,7 +34,9 @@ async def create_user_account(
 
 
 @auth_router.post("/login")
+@limiter.limit(WRITE_RATE_LIMIT)
 async def login_users(
+    request: Request,
     login_data: UserLoginModel,
     session: AsyncSession = Depends(get_session),
 ):
@@ -64,7 +69,9 @@ async def login_users(
 
 
 @auth_router.get("/refresh")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_new_access_token(
+    request: Request,
     token_details: dict = Depends(RefreshTokenBearer()),
 ):
     expiry_timestamp = token_details["exp"]
@@ -78,7 +85,9 @@ async def get_new_access_token(
 
 
 @auth_router.get("/logout")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def revoke_token(
+    request: Request,
     token_details: dict = Depends(AccessTokenBearer()),
 ):
     jti = token_details["jti"]
@@ -91,7 +100,9 @@ async def revoke_token(
 
 
 @auth_router.get("/me", response_model=UserOut)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_current_user_profile(
+    request: Request,
     user=Depends(get_current_user),
 ):
     return user

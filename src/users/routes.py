@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import PaginationDependency
@@ -10,6 +10,7 @@ from src.users import service
 from src.users.schemas import UserCreate, UserOut, UserUpdate
 from src.auth.dependencies import AccessTokenBearer, RoleChecker
 from src.errors import UserNotFound
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 user_router = APIRouter()
 access_token_bearer = AccessTokenBearer()
@@ -17,7 +18,9 @@ admin_role_checker = Depends(RoleChecker(["admin"]))
 
 
 @user_router.get("/", response_model=List[UserOut], dependencies=[admin_role_checker])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_users(
+        request: Request,
         pagination: PaginationDependency,
         search: str = Query(None, description="Search by name or email"),
         sort_by: str = Query("created_at", description="Sort by field"),
@@ -36,7 +39,9 @@ async def get_users(
 
 
 @user_router.get("/{user_id}", response_model=UserOut, dependencies=[admin_role_checker])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_user(
+        request: Request,
         user_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -51,7 +56,9 @@ async def get_user(
     response_model=UserOut,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def update_user(
+        request: Request,
         user_id: uuid.UUID,
         update_data: UserUpdate,
         session: AsyncSession = Depends(get_session),
@@ -67,7 +74,9 @@ async def update_user(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def delete_user(
+        request: Request,
         user_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):

@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(validation_alias="JWT_ALGORITHM")
     redis_host: str = Field(default="localhost", validation_alias="REDIS_HOST")
     redis_port: int = Field(default=6379, validation_alias="REDIS_PORT")
+    profiling_enabled: bool = Field(default=False, validation_alias="PROFILING_ENABLED")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

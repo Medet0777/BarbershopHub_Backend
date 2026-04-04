@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, Request
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,7 @@ from src.db.session import get_session
 from src.auth.dependencies import RoleChecker, get_current_user
 from src.db.models import User
 from src.errors import BookingNotFound
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 booking_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -17,7 +18,9 @@ client_role_checker = Depends(RoleChecker(["admin", "client"]))
 
 
 @booking_router.get("/", response_model=List[BookingOut], dependencies=[admin_role_checker])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_bookings(
+        request: Request,
         pagination: PaginationDependency,
         status_filter: str = Query(None, alias="status"),
         sort_by: str = Query("created_at"),
@@ -28,7 +31,9 @@ async def get_bookings(
 
 
 @booking_router.get("/{booking_id}", response_model=BookingOut)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_booking(
+        request: Request,
         booking_id: uuid.UUID,
         current_user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_session),
@@ -45,7 +50,9 @@ async def get_booking(
     status_code=status.HTTP_201_CREATED,
     dependencies=[client_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def create_booking(
+        request: Request,
         booking_data: BookingCreate,
         session: AsyncSession = Depends(get_session),
 ):
@@ -57,7 +64,9 @@ async def create_booking(
     response_model=BookingOut,
     dependencies=[client_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def update_booking(
+        request: Request,
         booking_id: uuid.UUID,
         update_data: BookingUpdate,
         session: AsyncSession = Depends(get_session),
@@ -73,7 +82,9 @@ async def update_booking(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def delete_booking(
+        request: Request,
         booking_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):

@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import PaginationDependency
@@ -10,6 +10,7 @@ from src.services import service
 from src.services.schemas import ServiceOut, ServiceCreate, ServiceUpdate
 from src.auth.dependencies import RoleChecker
 from src.errors import ServiceNotFound
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 service_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -17,7 +18,9 @@ admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"])
 
 
 @service_router.get("/", response_model=List[ServiceOut])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_services(
+        request: Request,
         pagination: PaginationDependency,
         search: str = Query(None),
         category: str = Query(None),
@@ -38,7 +41,9 @@ async def get_services(
 
 
 @service_router.get("/{service_id}", response_model=ServiceOut)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_service(
+        request: Request,
         service_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -54,7 +59,9 @@ async def get_service(
     status_code=status.HTTP_201_CREATED,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def create_service(
+        request: Request,
         svc_data: ServiceCreate,
         session: AsyncSession = Depends(get_session),
 ):
@@ -67,7 +74,9 @@ async def create_service(
     response_model=ServiceOut,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def update_service(
+        request: Request,
         service_id: uuid.UUID,
         update_data: ServiceUpdate,
         session: AsyncSession = Depends(get_session),
@@ -83,7 +92,9 @@ async def update_service(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def delete_service(
+        request: Request,
         service_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):

@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.payments import service
@@ -11,6 +11,7 @@ from src.db.session import get_session
 from src.auth.dependencies import RoleChecker, get_current_user
 from src.db.models import User
 from src.errors import PaymentNotFound, DuplicatePayment
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 payment_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -18,7 +19,9 @@ client_role_checker = Depends(RoleChecker(["admin", "client"]))
 
 
 @payment_router.get("/", response_model=List[PaymentOut], dependencies=[admin_role_checker])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_payments(
+        request: Request,
         pagination: PaginationDependency,
         status_filter: str = Query(None, alias="status"),
         sort_by: str = Query("created_at"),
@@ -36,7 +39,9 @@ async def get_payments(
 
 
 @payment_router.get("/{payment_id}", response_model=PaymentOut)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_payment(
+        request: Request,
         payment_id: uuid.UUID,
         current_user: User = Depends(get_current_user),
         session: AsyncSession = Depends(get_session),
@@ -53,7 +58,9 @@ async def get_payment(
     status_code=status.HTTP_201_CREATED,
     dependencies=[client_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def create_payment(
+        request: Request,
         payment_data: PaymentCreate,
         session: AsyncSession = Depends(get_session),
 ):
@@ -69,7 +76,9 @@ async def create_payment(
     response_model=PaymentOut,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def update_payment(
+        request: Request,
         payment_id: uuid.UUID,
         update_data: PaymentUpdate,
         session: AsyncSession = Depends(get_session),
@@ -85,7 +94,9 @@ async def update_payment(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def delete_payment(
+        request: Request,
         payment_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):

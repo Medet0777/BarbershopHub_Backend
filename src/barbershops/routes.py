@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, Query
+from fastapi import APIRouter, status, Depends, Query, Request
 from typing import List
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from src.dependencies import PaginationDependency
 from src.db.session import get_session
 from src.auth.dependencies import RoleChecker
 from src.errors import BarbershopNotFound
+from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 barbershop_router = APIRouter()
 admin_role_checker = Depends(RoleChecker(["admin"]))
@@ -20,7 +21,9 @@ admin_or_staff_role_checker = Depends(RoleChecker(["admin", "barbershop_staff"])
 
 
 @barbershop_router.get("/", response_model=List[BarbershopOut])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_barbershops(
+        request: Request,
         pagination: PaginationDependency,
         search: str = Query(None),
         sort_by: str = Query("created_at"),
@@ -31,7 +34,9 @@ async def get_barbershops(
 
 
 @barbershop_router.get("/{shop_id}", response_model=BarbershopOut)
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_barbershop(
+        request: Request,
         shop_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -42,7 +47,9 @@ async def get_barbershop(
 
 
 @barbershop_router.get("/{shop_id}/services", response_model=List[ServiceOut])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_barbershop_services(
+        request: Request,
         shop_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -53,7 +60,9 @@ async def get_barbershop_services(
 
 
 @barbershop_router.get("/{shop_id}/schedules", response_model=List[ScheduleOut])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_barbershop_schedules(
+        request: Request,
         shop_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -64,7 +73,9 @@ async def get_barbershop_schedules(
 
 
 @barbershop_router.get("/{shop_id}/reviews", response_model=List[ReviewOut])
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_barbershop_reviews(
+        request: Request,
         shop_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
@@ -80,7 +91,9 @@ async def get_barbershop_reviews(
     status_code=status.HTTP_201_CREATED,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def create_barbershop(
+        request: Request,
         shop_data: BarbershopCreate,
         session: AsyncSession = Depends(get_session),
 ):
@@ -92,7 +105,9 @@ async def create_barbershop(
     response_model=BarbershopOut,
     dependencies=[admin_or_staff_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def update_barbershop(
+        request: Request,
         shop_id: uuid.UUID,
         update_data: BarbershopUpdate,
         session: AsyncSession = Depends(get_session),
@@ -108,7 +123,9 @@ async def update_barbershop(
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[admin_role_checker],
 )
+@limiter.limit(WRITE_RATE_LIMIT)
 async def delete_barbershop(
+        request: Request,
         shop_id: uuid.UUID,
         session: AsyncSession = Depends(get_session),
 ):
