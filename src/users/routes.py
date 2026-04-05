@@ -1,15 +1,18 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, status, Depends, Query, Request
+from fastapi import APIRouter, status, Depends, Query, Request, UploadFile, File
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import PaginationDependency
 from src.db.session import get_session
 from src.users import service
 from src.users.schemas import UserCreate, UserOut, UserUpdate
-from src.auth.dependencies import AccessTokenBearer, RoleChecker
+from src.auth.dependencies import AccessTokenBearer, RoleChecker, get_current_user
+from src.db.models import User
 from src.errors import UserNotFound
+from src.celery_tasks import compress_and_store_image
 from src.rate_limiter import limiter, DEFAULT_RATE_LIMIT, HOURLY_RATE_LIMIT, WRITE_RATE_LIMIT
 
 user_router = APIRouter()
@@ -84,3 +87,23 @@ async def delete_user(
     if not deleted:
         raise UserNotFound()
     return {}
+
+
+@user_router.post("/upload-image")
+@limiter.limit(WRITE_RATE_LIMIT)
+async def upload_profile_image(
+        request: Request,
+        file: UploadFile = File(...),
+        current_user: User = Depends(get_current_user),
+):
+    image_bytes = await file.read()
+
+    compress_and_store_image.delay(str(current_user.uid), image_bytes)
+
+    return JSONResponse(
+        content={
+            "message": "Image uploaded, compression in progress",
+            "original_size_kb": round(len(image_bytes) / 1024, 1),
+        },
+        status_code=status.HTTP_200_OK,
+    )

@@ -24,5 +24,15 @@ class UserOut(BaseModel):
     name: str
     email: str
     role: str
+    is_verified: bool
     created_at: datetime
     updated_at: datetime
+
+
+class PasswordResetRequestModel(BaseModel):
+    email: str
+
+
+class PasswordResetConfirmModel(BaseModel):
+    new_password: str = Field(min_length=6)
+    confirm_new_password: str = Field(min_length=6)

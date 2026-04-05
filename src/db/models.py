@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional, List
 
 import sqlalchemy.dialects.postgresql as pg
-from sqlalchemy import ForeignKey, Integer, Time
+from sqlalchemy import ForeignKey, Integer, Time, LargeBinary
 from sqlmodel import SQLModel, Field, Column, Relationship
 
 from src.db.enums import RoleEnum, BookingStatusEnum, PaymentStatusEnum, PaymentMethodEnum
@@ -25,6 +25,8 @@ class User(SQLModel, table=True):
     email: str = Field(index=True, nullable=False, unique=True)
     password: str
     role: str = Field(default=RoleEnum.CLIENT)
+    is_verified: bool = Field(default=False)
+    profile_image: Optional[bytes] = Field(default=None, sa_column=Column(LargeBinary, nullable=True))
     created_at: datetime = Field(
         sa_column=Column(pg.TIMESTAMP(timezone=True), default=lambda: datetime.now(timezone.utc))
     )

@@ -4,8 +4,11 @@ from datetime import datetime, timedelta
 
 import jwt
 import bcrypt
+from itsdangerous import URLSafeTimedSerializer
 
 from src.config import settings
+
+serializer = URLSafeTimedSerializer(secret_key=settings.jwt_secret, salt="email-verification")
 
 ACCESS_TOKEN_EXPIRY = 60  # minutes
 REFRESH_TOKEN_EXPIRY = 7  # days
@@ -50,4 +53,15 @@ def decode_token(token: str) -> dict:
         return token_data
     except jwt.PyJWTError as e:
         logging.exception(e)
+        return None
+
+
+def create_url_safe_token(data: dict) -> str:
+    return serializer.dumps(data)
+
+
+def decode_url_safe_token(token: str) -> dict:
+    try:
+        return serializer.loads(token, max_age=3600)  # 1 hour expiry
+    except Exception:
         return None

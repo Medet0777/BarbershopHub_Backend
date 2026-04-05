@@ -28,5 +28,15 @@ class UserService:
         await session.refresh(new_user)
         return new_user
 
+    async def update_user_verified(self, user: User, session: AsyncSession):
+        user.is_verified = True
+        await session.commit()
+        await session.refresh(user)
+
+    async def update_user_password(self, user: User, new_hash: str, session: AsyncSession):
+        user.password = new_hash
+        await session.commit()
+        await session.refresh(user)
+
 
 user_service = UserService()
