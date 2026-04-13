@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "BBS Database",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "bbs_db",
+      "Username": "bbs_user",
+      "SSLMode": "prefer"
+    }
+  }
+}

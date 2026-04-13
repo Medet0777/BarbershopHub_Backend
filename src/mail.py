@@ -12,10 +12,10 @@ mail_config = ConnectionConfig(
     MAIL_PORT=settings.mail_port,
     MAIL_SERVER=settings.mail_server,
     MAIL_FROM_NAME=settings.mail_from_name,
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True,
+    MAIL_STARTTLS=settings.mail_starttls,
+    MAIL_SSL_TLS=settings.mail_ssl_tls,
+    USE_CREDENTIALS=settings.mail_use_credentials,
+    VALIDATE_CERTS=settings.mail_use_credentials,
 )
 
 mail = FastMail(config=mail_config)
